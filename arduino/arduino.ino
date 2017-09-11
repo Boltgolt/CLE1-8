@@ -22,7 +22,7 @@ void loop(void) {
   float voltage = reading * 5.0;                    //Converting reading to voltage
   voltage /= 1024.0; 
   float temperatureC = (voltage - 0.5) * 100 ;  //converting
-
+//digitalWrite(motorPin, HIGH);
   for (int i=0; i < photoLength; i++) {
       if (i == photoLength - 1) {
         photoHistory[i] = photocellReading;
