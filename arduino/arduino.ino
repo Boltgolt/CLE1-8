@@ -1,16 +1,18 @@
-int photocellPin = 0;     // the analog pin the light sensor pin is connected to
+int photocellPin = 3;     // the analog pin the light sensor pin is connected to
 int photocellReading;     // the analog reading from the sensor divider
 int sensorPin = 2;        // the analog pin the heat sensor pin is connected to
-
+int motorPin = 7;         // the digital pin the dc motor is connected to
+int activate = 0;
 int photoHistory[] = {0, 0, 0, 0, 0, 0};
 float temperatureHistory[] = {0, 0, 0, 0, 0, 0};
 
 int photoLength = sizeof(photoHistory) / 2;
 int temperatureLength = sizeof(temperatureHistory) / 4;
 
+
 void setup(void) {
-  // We'll send debugging information via the Serial monitor
-  Serial.begin(9600);
+  pinMode(motorPin, OUTPUT); // set motorPin as output
+  Serial.begin(9600); // We'll send debugging information via the Serial monitor
      
 }
  
@@ -45,14 +47,19 @@ void loop(void) {
   
   int deltaPhoto = photoHistory[5] - photoHistory[0];
   float deltaTemperature = temperatureHistory[0] - temperatureHistory[5];
-  
-    Serial.print(deltaTemperature);
+  Serial.print("Temp = ");
+    Serial.print(abs(deltaTemperature));
   Serial.print(" - ");
-  
+  Serial.print("Light = ");
   Serial.println(deltaPhoto);
 
-  if (deltaTemperature > 2 && deltaPhoto > 30) {
+  if (abs(deltaTemperature) > 2 && deltaPhoto > 30) {
      Serial.println("VUUUUUR");
+     digitalWrite(motorPin, HIGH);
+    activate = 1;
+  }
+  else  {
+    digitalWrite  (motorPin, LOW);
   }
   
 
