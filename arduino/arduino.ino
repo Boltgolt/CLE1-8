@@ -13,44 +13,57 @@ int motorPin = 7;
 
 // Whether or not we're currently crying
 int activate = 0;
+// Will disallow activation when above 0
+int cooldown = 3;
 // The last X readings from the light sendor
 int photoHistory[] = {0, 0, 0, 0, 0, 0};
 float temperatureHistory[] = {0, 0, 0, 0, 0, 0};
 
+// Dynamic array lengths
 int photoLength = sizeof(photoHistory) / 2;
 int temperatureLength = sizeof(temperatureHistory) / 4;
 
 
 void setup(void) {
+  // Get the LED, motor and serial console ready
   pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(motorPin, OUTPUT); // set motorPin as output
-  Serial.begin(9600); // We'll send debugging information via the Serial monitor
+  pinMode(motorPin, OUTPUT);
+  Serial.begin(9600);
 
+  // Start listening for I2C comm
   Wire.begin(SLAVE_ADDRESS);
 
-  // define callbacks for i2c communication
+  // Define callbacks for i2c communication
   Wire.onReceive(receiveData);
   Wire.onRequest(sendData);
 
   Serial.println("Gestart");
 }
 
-// Activates the sound and turns on the motor after a delay of 12 seconds
-
 void loop(void) {
+  // When activated, wait 12s for the sound to play and active the motor after that
   if (activate == 1) {
     delay(12000);
     digitalWrite(motorPin, HIGH);
     delay(5000);
-  }
-  
-// Reads the light sensor and heat sensor data and converts the heat sensor readings to temperature
+    digitalWrite(motorPin, LOW);
 
-  int photocellReading = analogRead(photocellPin);  //Reading light
-  int reading = analogRead(sensorPin);              //Reading voltage
-  float voltage = reading * 5.0;                    //Converting reading to voltage
+    // Reset activation and set the cooldown to 6 loops to ingore invalid data after wakeup
+    activate = 0;
+    cooldown = 6;
+    return;
+  }
+
+  // Read raw sansor data
+  int photocellReading = analogRead(photocellPin);
+  int reading = analogRead(sensorPin);
+
+  // Convert temperature voltage to celcius
+  float voltage = reading * 5.0;
   voltage /= 1024.0;
-  float temperatureC = (voltage - 0.5) * 100 ;  //converting voltage to temperature
+  float temperatureC = (voltage - 0.5) * 100 ;
+
+  // Move the light sensor data points by 1 and add the last reading
   for (int i = 0; i < photoLength; i++) {
     if (i == photoLength - 1) {
       photoHistory[i] = photocellReading;
@@ -60,6 +73,7 @@ void loop(void) {
     }
   }
 
+  // Move the temperature sensor data points by 1 and add the last reading
   for (int i = 0; i < temperatureLength; i++) {
     if (i == temperatureLength - 1) {
       temperatureHistory[i] = temperatureC;
@@ -69,45 +83,59 @@ void loop(void) {
     }
   }
 
+  // If both are 0, the data hasn't been filled yet
   if (temperatureHistory[1] == 0 && photoHistory[1] == 0) {
     return;
   }
-  
-// Prints Temperature and light data to the Serial Monitor for debugging purposes, and turns the internal led on when it activates.
+
+  // Get the diff of old and new temperature and light data
   int deltaPhoto = photoHistory[5] - photoHistory[0];
   float deltaTemperature = temperatureHistory[0] - temperatureHistory[5];
+
+  // Print the last data to the console
   Serial.print("Temp = ");
   Serial.print(deltaTemperature);
-  Serial.print(" - ");
-  Serial.print("Light = ");
-  Serial.println(deltaPhoto);
+  Serial.print(" - Light = ");
+  Serial.print(deltaPhoto);
+  Serial.print(" - Cooldown = ");
+  Serial.println(cooldown);
 
-  if (deltaTemperature < 2 && deltaPhoto > 30) {
+  // If the temperature and light diff is high and we're not on cooldown, activate
+  if (deltaTemperature < 2 && deltaPhoto > 15 && cooldown == 0) {
     Serial.println("VUUUUUR");
     digitalWrite(LED_BUILTIN, HIGH);
     activate = 1;
   }
+  // Otherwise, make sure we're not activated
   else  {
     activate = 0;
     digitalWrite(motorPin, LOW);
     digitalWrite(LED_BUILTIN, LOW);
   }
 
+  // Lower the cooldown by 1 if we're currently on cooldown
+  if (cooldown > 0) {
+    cooldown--;
+  }
+
   delay(500);
 }
 
-// Connects the Arduino and Pi thogeter to play sound file when "activate = 1;"
+// Receives data from the pi but discards it as we don't need it
+// We need to keep receiveing the data because the I2C connection will close otherwise
 void receiveData(int byteCount) {
   while (Wire.available()) {
     Wire.read();
   }
 }
 
-// callback for sending data
+// When we're allowed to send data
 void sendData() {
-  Serial.print("I2C van pi = ");
+  // Print what we're doing
+  Serial.print("I2C naar pi = ");
   Serial.println(activate);
 
+  // Let the pi know it should play sound if we're activated
   if (activate == 1) {
     Wire.write(2);
   }

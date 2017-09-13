@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 # import required libs
 import smbus
 import time
@@ -11,20 +13,20 @@ address = 0x04
 
 # try to read a number from the bus, return -1 if that failed
 def readNumber():
-        try:
-                return bus.read_byte_data(address, 1)
-        except:
-                return -1
+    try:
+        return bus.read_byte_data(address, 1)
+    except:
+        return -1
+
 
 # until the end of time
 while True:
-	# delay for a second
-        time.sleep(1)
+    # delay for a second
+    time.sleep(1)
 
-	# read the code send by the arduino
-        code = readNumber()
-	
-	# if it's code one, start playing the audio
-        if (code == 2):
-                subprocess.call(["aplay", "/home/pi/CLE1-8/audio/ted sfx.wav"])
+    # read the code send by the arduino
+    code = readNumber()
 
+    # if it's code one, start playing the audio
+    if code == 2:
+        subprocess.call(['aplay', '/home/pi/CLE1-8/audio/ted sfx.wav'])
