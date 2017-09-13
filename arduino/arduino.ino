@@ -35,18 +35,22 @@ void setup(void) {
   Serial.println("Gestart");
 }
 
+// Activates the sound and turns on the motor after a delay of 12 seconds
+
 void loop(void) {
   if (activate == 1) {
     delay(12000);
     digitalWrite(motorPin, HIGH);
     delay(5000);
   }
+  
+// Reads the light sensor and heat sensor data and converts the heat sensor readings to temperature
 
   int photocellReading = analogRead(photocellPin);  //Reading light
   int reading = analogRead(sensorPin);              //Reading voltage
   float voltage = reading * 5.0;                    //Converting reading to voltage
   voltage /= 1024.0;
-  float temperatureC = (voltage - 0.5) * 100 ;  //converting
+  float temperatureC = (voltage - 0.5) * 100 ;  //converting voltage to temperature
   for (int i = 0; i < photoLength; i++) {
     if (i == photoLength - 1) {
       photoHistory[i] = photocellReading;
@@ -68,7 +72,8 @@ void loop(void) {
   if (temperatureHistory[1] == 0 && photoHistory[1] == 0) {
     return;
   }
-
+  
+// Prints Temperature and light data to the Serial Monitor for debugging purposes, and turns the internal led on when it activates.
   int deltaPhoto = photoHistory[5] - photoHistory[0];
   float deltaTemperature = temperatureHistory[0] - temperatureHistory[5];
   Serial.print("Temp = ");
@@ -91,6 +96,7 @@ void loop(void) {
   delay(500);
 }
 
+// Connects the Arduino and Pi thogeter to play sound file when "activate = 1;"
 void receiveData(int byteCount) {
   while (Wire.available()) {
     Wire.read();
